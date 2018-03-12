@@ -29,10 +29,5 @@ RUN             ln -sf  /etc/nginx/sites-available/nginx-app.conf   /etc/nginx/s
 # supervisor설정 파일을 복사
 RUN             cp -f   /srv/project/.config/${BUILD_MODE}/supervisord.conf  /etc/supervisor/conf.d/
 
-# Sqlite DB migrate, createsupersuer
-WORKDIR         /srv/project/app
-#RUN             python manage.py migrate
-#RUN             python manage.py createsu
-
 # pkil niginx후 supervisord -n실행
 CMD             pkill nginx; supervisord -n
