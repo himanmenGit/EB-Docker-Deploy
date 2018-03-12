@@ -12,24 +12,54 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 import json
 import os
 
-import raven
+import sys
+
+import importlib
+import numbers
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT_DIR = os.path.dirname(BASE_DIR)
+SECRETS_DIR = os.path.join(ROOT_DIR, '.secrets')
+SECRETS_BASE = os.path.join(SECRETS_DIR, 'base.json')
+SECRETS_LOCAL = os.path.join(SECRETS_DIR, 'local.json')
+SECRETS_DEV = os.path.join(SECRETS_DIR, 'dev.json')
+SECRETS_PRODUCTION = os.path.join(SECRETS_DIR, 'prodution.json')
 
-SECRET_DIR = os.path.join(ROOT_DIR, '.secrets')
-SECRET_BASE = os.path.join(SECRET_DIR, 'base.json')
+secrets = json.loads(open(SECRETS_BASE, 'rt').read())
 
-secrets = json.loads(open(SECRET_BASE, 'rt').read())
-
-SECRET_KEY = secrets['SECRET_KEY']
-
-DEBUG = True
-
-ALLOWED_HOSTS = []
+STATIC_URL = '/static/'
 
 
-# Application definition
+def set_config(obj, module_name=None, root=False):
+    def eval_obj(obj):
+        if isinstance(obj, numbers.Number) or (isinstance(obj, str) and obj.isdigit()):
+            return obj
+
+        try:
+            return eval(obj)
+        except NameError:
+            return obj
+        except Exception as e:
+            return obj
+
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if isinstance(value, dict) or isinstance(value, list):
+                set_config(value)
+            else:
+                obj[key] = eval_obj(value)
+
+            if root:
+                setattr(sys.modules[module_name], key, value)
+    elif isinstance(obj, list):
+        for index, value in enumerate(obj):
+            obj[index] = eval_obj(value)
+
+
+setattr(sys.modules[__name__], 'raven', importlib.import_module('raven'))
+set_config(secrets, __name__, root=True)
+
+AUTH_USER_MODEL = 'members.User'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -39,8 +69,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'members',
+
     'raven.contrib.django.raven_compat',
-    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -71,20 +102,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/2.0/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
 
@@ -103,29 +120,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
 USE_L10N = True
 
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.0/howto/static-files/
-
-STATIC_URL = '/static/'
-
-RAVEN_CONFIG = {
-    'dsn': secrets['SECRET_DSN'],
-    # If you are using git, you can also automatically configure the
-    # release based on the git info.
-    'release': raven.fetch_git_sha(os.path.abspath(os.pardir)),
-}
