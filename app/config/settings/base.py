@@ -28,6 +28,11 @@ SECRETS_PRODUCTION = os.path.join(SECRETS_DIR, 'prodution.json')
 secrets = json.loads(open(SECRETS_BASE, 'rt').read())
 
 STATIC_URL = '/static/'
+STATIC_DIR = 'static'
+STATIC_ROOT = os.path.join(ROOT_DIR, '.static')
+STATICFILE_DIRS = [
+    STATIC_DIR,
+]
 
 
 def set_config(obj, module_name=None, root=False):
